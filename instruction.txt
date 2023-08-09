@@ -1,0 +1,29 @@
+gọi hàm từ file main.py
+
+1. Xử lý 1 file wav:
+    - gọi hàm extract_silence
+    - hàm extract_silence(input_file, output_dir, min_silence_length, silence_threshold, step_duration, dry_run=False)
+        + input_file: tên file wav
+        + output_dir: đường dẫn cho các file kết quả
+        + min_silence_length: khoảng thời gian pause ngắn nhất
+        + silence_threshold: mức năng lượng cao nhất để tính là ko có âm thanh
+        + step_duration: khoảng cách window khi xử lý file wav. Càng nhỏ càng chính xác nhưng chậm
+        + dry_run: True nếu xuất ra các file wav nhỏ hơn (mỗi file là 1 đoạn ko chứa pause). False nếu chỉ xuất ra file json
+    - hàm extract_silence return ra 1 số nguyên là số đoạn wav ko chứa pause
+    - ví dụ (đây là bộ tham số đã được thử trên data ban đầu):
+        from main import extract_silence
+
+        n = extract_silence('./data/abc.wav', './output', 1.0, 1e-4, 0.005, True)
+        num_pause = n -1
+    
+2. Xử lý đa file:
+    - gọi hàm multiple
+    - hàm multiple(input_dir, output_dir, min_silence_length, silence_threshold, step_duration, dry_run=False)
+        + input_dir: đường dẫn chứa các file wav
+        + các tham số khác giống của hàm extract_silence
+    - hàm này trả ra một list với mỗi phần tử là một tuple (<tên file wav>, <số đoạn ko chứa pause>)
+    - ví dụ:
+        from main import multiple
+
+        n = multiple('./data', './output', 1.0, 1e-4, 0.005, True)
+        num_pause = n - 1

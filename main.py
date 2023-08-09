@@ -91,8 +91,8 @@ def multiple(input_dir, output_dir, min_silence_length, silence_threshold, step_
 #0.8, 3e-4, 0.03/10 --> 81.545
 #1.0, 5e-4, 1.0/10 --> 86.695
 #1.0, 1.0, 5e-4, 0.5/10 --> 86.266
-import compare
-import pickle
+# import compare
+# import pickle
 
 # for i in range(1, 6):
 #     for j in range(1, 10):
