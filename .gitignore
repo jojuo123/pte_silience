@@ -1,0 +1,12 @@
+Audio-Denoising/
+.ipynb_checkpoints
+__pycache__
+lib
+denoise.py 
+data
+demo
+output
+test.py
+tmp.pkl
+tmp.txt
+Untitled.ipynb
