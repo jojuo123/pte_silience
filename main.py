@@ -4,6 +4,7 @@ from scipy.io import wavfile
 import numpy as np
 from tqdm import tqdm
 import json
+from collections import defaultdict
 
 def extract_silence(input_file, output_dir, min_silence_length, silence_threshold, step_duration, dry_run=False):
     input_filename = input_file
@@ -76,7 +77,7 @@ def extract_silence(input_file, output_dir, min_silence_length, silence_threshol
     with open (os.path.join(output_dir, output_filename_prefix+'.json'), 'w') as output:
         json.dump(video_sub, output)
     
-    return len(cut_ranges)
+    return len(cut_ranges), cut_ranges, sample_rate
 
 
 def multiple(input_dir, output_dir, min_silence_length, silence_threshold, step_duration, dry_run=False):
@@ -87,6 +88,38 @@ def multiple(input_dir, output_dir, min_silence_length, silence_threshold, step_
         fname = f.split('/')[-1]
         res.append((fname, n))
     return res
+
+def fluency_detecting(input_file, output_dir, min_silence_length=0.3, max_silence_range=0.5, silence_threshold=1e-4, step_duration=0.005, dry_run=False, max_interval=0.1):
+    n, cut_ranges, sample_rate = extract_silence(input_file, output_dir, min_silence_length, silence_threshold, step_duration, dry_run)
+    score = -1
+    dic = defaultdict(lambda: 0)
+    head = [i for i in range(n-1)]
+    cut_ranges = [(s / sample_rate, e / sample_rate) for s, e in cut_ranges]
+    for i, (s, e) in enumerate(cut_ranges):
+        if e - s >= 1.5:
+            score = 2
+        if i == 0:
+            continue
+        if s - e > max_silence_range:
+            continue
+        e_prev = cut_ranges[i-1][1]
+        if s - e_prev < max_interval:
+            if s - e <= 0.5:
+                head[i] = head[i-1]
+                dic[head[i]] += 1
+    count = 0
+    for i in range(dic.keys()):
+        if dic[i] > 1:
+            count += 1
+        if dic[i] > 2:
+            score = 1
+    if count <= 1 and score == -1:
+        score = 1
+    if count == 0:
+        score = 2
+    return score
+
+
 
 #0.8, 3e-4, 0.03/10 --> 81.545
 #1.0, 5e-4, 1.0/10 --> 86.695
