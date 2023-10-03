@@ -89,34 +89,47 @@ def multiple(input_dir, output_dir, min_silence_length, silence_threshold, step_
         res.append((fname, n))
     return res
 
-def fluency_detecting(input_file, output_dir, min_silence_length=0.3, max_silence_range=0.5, silence_threshold=1e-4, step_duration=0.005, dry_run=False, max_interval=0.1):
+def fluency_detecting(input_file, output_dir, min_silence_length=0.3, max_silence_range=0.5, silence_threshold=1e-4, step_duration=0.005, dry_run=False, ):
     n, cut_ranges, sample_rate = extract_silence(input_file, output_dir, min_silence_length, silence_threshold, step_duration, dry_run)
+    if n == 1:
+        return 5
     score = -1
     dic = defaultdict(lambda: 0)
     head = [i for i in range(n-1)]
     cut_ranges = [(s / sample_rate, e / sample_rate) for s, e in cut_ranges]
     for i, (s, e) in enumerate(cut_ranges):
+        #neu noi dc 1.5s lien tuc
         if e - s >= 1.5:
             score = 2
         if i == 0:
             continue
-        if s - e > max_silence_range:
-            continue
         e_prev = cut_ranges[i-1][1]
-        if s - e_prev < max_interval:
+        #nếu độ dài pause quá lớn -> ko xét là đọc cà giật
+        if s - e_prev > max_silence_range:
+            continue
+        else:
+            #nếu độ dài nói ngắn hơn 0.5 --> đọc giật liên tục
             if s - e <= 0.5:
                 head[i] = head[i-1]
                 dic[head[i]] += 1
     count = 0
     for i in range(dic.keys()):
+        #đếm số lần đọc giật liên tục (thỏa pattern giật - nói - giật)
         if dic[i] > 1:
             count += 1
+        #nếu giật quá liên tục ít nhất 1 lần --> quy ra điểm 
         if dic[i] > 2:
             score = 1
-    if count <= 1 and score == -1:
+    #nếu số lần giạt - nói - giật từ 1 lần trở lên và ko nói được đoạn nào từ 1.5 trở lên  
+    if count >= 1 and score == -1:
         score = 1
-    if count == 0:
+    #nếu số lần giật - nói - giật là 0 và không có giật-nói-giật-nói-giật và không nói được đoạn nào 1.5 giây --> được 2 điểm
+    if count == 0 and score == 2:
+        score = 3
+    if count == 0 and score == -1:
         score = 2
+    if score == -1:
+        score = 1
     return score
 
 
