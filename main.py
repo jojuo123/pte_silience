@@ -5,6 +5,7 @@ import numpy as np
 from tqdm import tqdm
 import json
 from collections import defaultdict
+import numpy as np
 
 def extract_silence(input_file, output_dir, min_silence_length, silence_threshold, step_duration, dry_run=False):
     input_filename = input_file
@@ -89,51 +90,86 @@ def multiple(input_dir, output_dir, min_silence_length, silence_threshold, step_
         res.append((fname, n))
     return res
 
-def fluency_detecting(input_file, output_dir, min_silence_length=0.3, max_silence_range=0.5, silence_threshold=1e-4, step_duration=0.005, dry_run=False, ):
-    n, cut_ranges, sample_rate = extract_silence(input_file, output_dir, min_silence_length, silence_threshold, step_duration, dry_run)
+def handle_score_1_2(talk_range, short_talk_range=(1, 1.5, 2)):
+    min_talk, med_talk, high_talk = short_talk_range
+    lens = talk_range.size 
+    if (lens == (talk_range <= min_talk).sum()):
+        return 0
+    first_range = talk_range >= min_talk & talk_range < med_talk
+    if first_range.sum() >= 4:
+        return 2
+    else:
+        second_range = talk_range >= med_talk < high_talk
+        num_second_range = second_range.sum()
+        if num_second_range >= 2:
+            return 2
+        else:
+            high_range = talk_range >= high_talk
+            if high_range.sum() >= 1:
+                return 2
+            else:
+                return 1
+    
+def fluency_detecting(input_file, output_dir, short_silence_range=(0.3, 1), silence_threshold=1e-4, step_duration=0.005, dry_run=False):
+    min_silence, max_silence = short_silence_range
+    n, cut_ranges, sample_rate = extract_silence(input_file, output_dir, min_silence, silence_threshold, step_duration, dry_run)
     if n == 1:
         return 5
     score = -1
-    dic = defaultdict(lambda: 0)
-    head = [i for i in range(n-1)]
-    cut_ranges = [(s / sample_rate, e / sample_rate) for s, e in cut_ranges]
-    for i, (s, e) in enumerate(cut_ranges):
-        #neu noi dc 1.5s lien tuc
-        if e - s >= 1.5:
-            score = 2
-        if i == 0:
-            continue
-        e_prev = cut_ranges[i-1][1]
-        #nếu độ dài pause quá lớn -> ko xét là đọc cà giật
-        if s - e_prev > max_silence_range:
-            continue
-        else:
-            #nếu độ dài nói ngắn hơn 0.5 --> đọc giật liên tục
-            if s - e <= 0.5:
-                head[i] = head[i-1]
-                dic[head[i]] += 1
-    count = 0
-    for i in range(dic.keys()):
-        #đếm số lần đọc giật liên tục (thỏa pattern giật - nói - giật)
-        if dic[i] > 1:
-            count += 1
-        #nếu giật quá liên tục ít nhất 1 lần --> quy ra điểm 
-        if dic[i] > 2:
-            score = 1
-    #nếu số lần giạt - nói - giật từ 1 lần trở lên và ko nói được đoạn nào từ 1.5 trở lên  
-    if count >= 1 and score == -1:
-        score = 1
-    #nếu số lần giật - nói - giật là 0 và không có giật-nói-giật-nói-giật và không nói được đoạn nào 1.5 giây --> được 2 điểm
-    if count == 0 and score == 2:
+    talk_range = np.array([(e - s) / sample_rate for s, e in cut_ranges])
+    starts = [s for s, _ in cut_ranges]
+    starts = np.array(starts[1:])
+    ends = [e for _, e in cut_ranges]
+    ends = np.array(ends[:-1])
+    silence_range = starts - ends
+    short_silence = silence_range < max_silence
+    count_short_silence = short_silence.sum()
+    short_talk_range = (1, 1.5)
+    if count_short_silence <=2:
         score = 3
-    if count == 0 and score == -1:
-        score = 2
-    if score == -1:
-        score = 1
-    return score
+    elif count_short_silence <= 9:
+       score = handle_score_1_2(talk_range, short_talk_range)
+    else:
+        score = 0
+    return score 
+        
+
+    
+    
+    
+    # for i, (s, e) in enumerate(cut_ranges):
+    #     if e - s >= 1.5:
+    #         score = 2
+    #     if i == 0:
+    #         continue
+    #     e_prev = cut_ranges[i-1][1]
+    #     if s - e_prev > max_silence_range:
+    #         continue
+    #     else:
+    #         if s - e <= 0.5:
+    #             head[i] = head[i-1]
+    #             dic[head[i]] += 1
 
 
-
+#có track được 1 pattern?
+#đọc giật đọc giật --> quy định sau --> pause dài 
+# ngắn - pause - ngắn nếu khoảng cách giữa 2 pattern -> ngắn 
+# số giây 
+# tốc độ nói trung bình -> 180 wpm
+# --> interval giữa 2 pause = 0.3-1s
+# barem:
+# mức 0: 
+# đọc ngắn - pause lâu 
+# mức 2: đọc 2 chữ liên tiếp trong 1 cụm 6 chữ --> quy về đọc 6 chữ liên tiếp:
+# đk: pattern >=2s 
+# 2 đoạn đọc được 1.5s 
+# ko xuất hiện trait 0
+#mức 3: xuất hiện tối đa 2 pattern đọc ngắn-nghỉ ngắn-đọc ngắn
+# bị đến lần thứ 3 --> quay về xét điểm 1 2 
+#  
+# mức 3+: 
+# 
+#  
 #0.8, 3e-4, 0.03/10 --> 81.545
 #1.0, 5e-4, 1.0/10 --> 86.695
 #1.0, 1.0, 5e-4, 0.5/10 --> 86.266
