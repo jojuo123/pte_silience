@@ -27,3 +27,5 @@ gọi hàm từ file main.py
 
         n = multiple('./data', './output', 1.0, 1e-4, 0.005, True)
         num_pause = n - 1
+
+3. chỉ có 4 file: derive.py, syllable.py, main.py, AudioSeg.py là file cần để chạy. File chính: main.py. Hàm chấm điểm chính là hàm audio_scorer trong main.py. Cái nlp trong syllable.py có thể set thành global variable trong server, xài xuyên suốt (đỡ phải load lại nhiều lần).
