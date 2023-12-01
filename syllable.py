@@ -19,12 +19,16 @@ def syllable_count(text):
         cnt_dot -= 1
     return data, word_cnt, cnt, cnt_dot
 
-def speech_rate_syllable(sample_rate, samples, text, wpm_avg=0.4, dot_pause=0.5, spm_avg=0.2):
+def speech_rate_syllable(talk_range, text, wpm_avg=0.4, dot_pause=0.5, spm_avg=0.2):
     _, word_cnt, cnt, cnt_dot = syllable_count(text)
-    length = samples.shape[0] / sample_rate
+    # length = samples.shape[0] / sample_rate
+    length = 0
+    for (s, e) in talk_range:
+        length += (e-s) 
     w_time = word_cnt * wpm_avg + cnt_dot * dot_pause
     s_time = cnt * spm_avg + cnt_dot * dot_pause
     w_rate = length / w_time
+
     w_score = 0
     if 0.9 <= w_rate <= 1.0:
         w_score = 4

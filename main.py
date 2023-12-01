@@ -135,9 +135,9 @@ def speech_scorer(txt):
     return 1
 
 def hesitation_scorer(count_hesitation):
-    if count_hesitation <= 1: 
+    if count_hesitation <= 2: 
         return 5
-    elif count_hesitation <= 4:
+    elif count_hesitation <= 5:
         return 4
     return 3
 
@@ -155,7 +155,7 @@ def audio_scorer(fname, text, dry_run=False):
     ideal_length, student_length = "NA", "NA"
 
     if overall_score == 3:
-        w_score, w_rate, _, _, ideal_length, student_length = syllable.speech_rate_syllable(sample_rate, samples, text)
+        w_score, w_rate, _, _, ideal_length, student_length = syllable.speech_rate_syllable(talk_range, text)
 
         hesitation_score = hesitation_scorer(count_hesitation)
 
@@ -195,4 +195,5 @@ def multiple_overall(input_dir, out_f):
     df = pd.DataFrame(r)
     df.to_csv(out_f)
     
-multiple_overall('./data', out_f='./result_overall_skeletoncheck.csv')
+# multiple_overall('./data', out_f='./result_overall_skeletoncheck.csv')
+print(audio_scorer("./data/Anh Duy.wav", text, False))
