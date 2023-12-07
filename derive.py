@@ -18,7 +18,7 @@ def derivative(sample, sample_rate, talk_range, window_size=0.2, threshold=5000)
             dx = (sw[local_min] - sw[local_max]) / (local_min - local_max)
             if abs(dx) > threshold:
                 cnt += 1
-        if cnt >= 2:
+        if cnt >= 3:
             return True
     
     return False

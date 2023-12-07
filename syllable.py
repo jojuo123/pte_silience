@@ -30,9 +30,9 @@ def speech_rate_syllable(talk_range, text, wpm_avg=0.4, dot_pause=0.5, spm_avg=0
     w_rate = length / w_time
 
     w_score = 0
-    if 0.9 <= w_rate <= 1.0:
+    if 0.85 <= w_rate <= 1.0:
         w_score = 4
-    elif 0.8 <= w_rate <= 0.9:
+    elif 0.7 <= w_rate <= 0.85:
         w_score = 5
     else:
         w_score = 3

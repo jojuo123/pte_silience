@@ -68,7 +68,7 @@ def handle_score_1_2(talk_range, short_talk_range=(1, 1.5, 2), sample_rate=0):
     lens = talk_range.size 
 
     if (lens == (talk_range <= min_talk).sum()):
-        return "no idea", "B", "no trait"
+        return "labored", "B", "no trait"
     first_range = (talk_range >= min_talk) & (talk_range < med_talk)
     if first_range.sum() >= 4:
         return "staccato", "B", "A"
@@ -117,7 +117,7 @@ def fluency_detecting(short_silence_range=(0.2, 1), silence_threshold=3e-4, step
     elif count_very_short_talk <= 9:
        score, reason, trait = handle_score_1_2(talk_range, short_talk_range, sample_rate)
     else:
-        score = "discontinuous"
+        score = "labored"
         reason = "C"
     return score, pause_range, [ [s/sample_rate, e/sample_rate] for s, e in cut_ranges], reason, trait, int(count_hesitation)
 
