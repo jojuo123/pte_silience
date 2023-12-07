@@ -8,6 +8,15 @@ from derive import derivative
 import numpy as np
 import pandas as pd
 import syllable
+import pydub
+
+def read_mp3(f):
+    a = pydub.AudioSegment.from_mp3(f)
+    y = np.array(a.get_array_of_samples())
+    if a.channels == 2:
+        y = y.reshape((-1, 2))
+    return a.frame_rate, y
+
 
 def extract_silence(min_silence_length, silence_threshold, step_duration, sample_rate, samples):
     window_duration = min_silence_length
@@ -142,7 +151,10 @@ def hesitation_scorer(count_hesitation):
     return 3
 
 def audio_scorer(fname, text, dry_run=False):
-    sample_rate, samples = wavfile.read(filename=fname, mmap=True)
+    if fname.endswith('.mp3'):
+        sample_rate, samples = read_mp3(fname)
+    else:
+        sample_rate, samples = wavfile.read(filename=fname, mmap=True)
     n, _, _ = extract_silence(min_silence_length=1.0, silence_threshold=1e-4, step_duration=0.005, sample_rate=sample_rate, samples=samples)
     long_pauses = n-1
     long_pauses_score = long_pause_scorer(long_pauses)
@@ -196,4 +208,4 @@ def multiple_overall(input_dir, out_f):
     df.to_csv(out_f)
     
 # multiple_overall('./data', out_f='./result_overall_skeletoncheck.csv')
-print(audio_scorer("./data/Anh Duy.wav", text, False))
+print(audio_scorer("./data/Anh Duy.mp3", text, False))
