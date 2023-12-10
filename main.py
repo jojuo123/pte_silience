@@ -87,12 +87,12 @@ def handle_score_1_2(talk_range, short_talk_range=(1, 1.5, 2), sample_rate=0):
 def fluency_detecting(short_silence_range=(0.2, 1), silence_threshold=3e-4, step_duration=0.02, very_short_talk_range=(0.4, 1), sample_rate=None, samples=None):
     min_silence, _ = short_silence_range
     n, cut_ranges, sample_rate = extract_silence(min_silence, silence_threshold, step_duration, sample_rate=sample_rate, samples=samples)
-    skeleton = derivative(samples, sample_rate, cut_ranges)
+    skeleton, trace = derivative(samples, sample_rate, cut_ranges)
     if n == 1:
         talk_range = np.array([(e - s) for s, e in cut_ranges])
         count_hesitation = (talk_range < (very_short_talk_range[0] * sample_rate)).sum()
         score = "No pause at all" if not skeleton else "staccato"
-        return score, [], [ [s/sample_rate, e/sample_rate] for s, e in cut_ranges], "no pause" if not skeleton else "skeleton", "", int(count_hesitation)
+        return score, [], [ [s/sample_rate, e/sample_rate] for s, e in cut_ranges], "no pause" if not skeleton else "skeleton", "", int(count_hesitation), trace
     score = "No idea"
     reason = ""
     trait = ""
@@ -119,7 +119,7 @@ def fluency_detecting(short_silence_range=(0.2, 1), silence_threshold=3e-4, step
     else:
         score = "labored"
         reason = "C"
-    return score, pause_range, [ [s/sample_rate, e/sample_rate] for s, e in cut_ranges], reason, trait, int(count_hesitation)
+    return score, pause_range, [ [s/sample_rate, e/sample_rate] for s, e in cut_ranges], reason, trait, int(count_hesitation), trace
 
 def long_pause_scorer(n):
     if n > 2:
@@ -159,7 +159,7 @@ def audio_scorer(fname, text, dry_run=False):
     long_pauses = n-1
     long_pauses_score = long_pause_scorer(long_pauses)
 
-    speech_score_text, pause_range, talk_range, reason, trait, count_hesitation = fluency_detecting(sample_rate=sample_rate, samples=samples)
+    speech_score_text, pause_range, talk_range, reason, trait, count_hesitation, skeleton_trace = fluency_detecting(sample_rate=sample_rate, samples=samples)
     speech_score = speech_scorer(speech_score_text)
     overall_score = min(long_pauses_score, speech_score)
 
@@ -175,7 +175,7 @@ def audio_scorer(fname, text, dry_run=False):
 
     if dry_run:
         return overall_score
-    return overall_score, long_pauses, speech_score_text, w_score, pause_range, talk_range, reason, trait, w_rate, ideal_length, student_length, count_hesitation
+    return overall_score, long_pauses, speech_score_text, w_score, pause_range, talk_range, reason, trait, w_rate, ideal_length, student_length, count_hesitation, skeleton_trace
 
 text = 'For any marketing course that requires the development of a marketing plan, such as Marketing Management, Marketing Strategy and Segmentation Support Marketing, this is the only planning handbook that guides students through the step-by-step creation of a customized marketing plan while offering commercial software to aid in the process.'
 
@@ -183,7 +183,7 @@ def multiple_overall(input_dir, out_f):
     filenames = [os.path.join(input_dir, i) for i in os.listdir(input_dir) if i.endswith('.wav')]
     r = []
     for f in tqdm(filenames):
-        overall_score, long_pauses, speech_score_text, w_score, pause_range, talk_range, reason, trait, w_rate, ideal_length, student_length, count_hesitation = audio_scorer(f, text, dry_run=False)
+        overall_score, long_pauses, speech_score_text, w_score, pause_range, talk_range, reason, trait, w_rate, ideal_length, student_length, count_hesitation, skeleton_trace = audio_scorer(f, text, dry_run=False)
         fname = f.split('/')[-1].split('.')[0]
         j = {
             'filename': fname,
@@ -198,7 +198,8 @@ def multiple_overall(input_dir, out_f):
             'ideal length': ideal_length,
             'student length': student_length,
             'ratio': w_rate,
-            'no. hesitation': count_hesitation
+            'no. hesitation': count_hesitation,
+            'skeleton trace': skeleton_trace 
         }
         r.append(j)
         with open (os.path.join('./output', f'{fname}.json'), 'w') as output:

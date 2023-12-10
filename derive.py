@@ -8,6 +8,7 @@ def derivative(sample, sample_rate, talk_range, window_size=0.2, threshold=5000)
     for s in sample_sectors:
         cnt = 0
         signal_windows = list(windows(s, window_size, window_size))
+        trace = []
         for sw in signal_windows:
             local_max = np.argmax(sw)
             if local_max == sw.shape[0] - 1:
@@ -17,8 +18,9 @@ def derivative(sample, sample_rate, talk_range, window_size=0.2, threshold=5000)
             
             dx = (sw[local_min] - sw[local_max]) / (local_min - local_max)
             if abs(dx) > threshold:
+                trace.append((local_max / sample_rate, local_min / sample_rate, abs(dx)))
                 cnt += 1
         if cnt >= 3:
-            return True
+            return True, trace
     
-    return False
+    return False, []
