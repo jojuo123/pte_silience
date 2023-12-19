@@ -9,6 +9,7 @@ import numpy as np
 import pandas as pd
 import syllable
 import pydub
+import timeit
 
 def read_mp3(f):
     a = pydub.AudioSegment.from_mp3(f)
@@ -150,9 +151,10 @@ def hesitation_scorer(count_hesitation):
         return 4
     return 3
 
-def audio_scorer(fname, text, dry_run=False):
+def audio_scorer(fname, text, ratio=((0.85, 1.0), (0.7, 0.85)), dry_run=False):
     if fname.endswith('.mp3'):
         sample_rate, samples = read_mp3(fname)
+        # sample_rate, samples = wavfile.read(filename=fname, mmap=True)
     else:
         sample_rate, samples = wavfile.read(filename=fname, mmap=True)
     n, _, _ = extract_silence(min_silence_length=1.0, silence_threshold=1e-4, step_duration=0.005, sample_rate=sample_rate, samples=samples)
@@ -167,7 +169,7 @@ def audio_scorer(fname, text, dry_run=False):
     ideal_length, student_length = "NA", "NA"
 
     if overall_score == 3:
-        w_score, w_rate, _, _, ideal_length, student_length = syllable.speech_rate_syllable(talk_range, text)
+        w_score, w_rate, _, _, ideal_length, student_length = syllable.speech_rate_syllable(talk_range, text, ratio=ratio)
 
         hesitation_score = hesitation_scorer(count_hesitation)
 
@@ -209,4 +211,19 @@ def multiple_overall(input_dir, out_f):
     df.to_csv(out_f)
     
 # multiple_overall('./data', out_f='./result_overall_skeletoncheck.csv')
-print(audio_scorer("./data/Anh Duy.mp3", text, False))
+# start = timeit.default_timer()
+# print(audio_scorer("./data/f7a6a796-eff7-4a45-b56c-5aa0d9a2376c.mp3", text, False))
+# stop = timeit.default_timer()
+# print(stop-start)
+    
+def main(file, text=None, task="RA"):
+    if task == 'RA':
+        return audio_scorer(fname=file, text=text)
+    elif task == 'RS':
+        return audio_scorer(fname=file, text=text)
+    elif task == 'DI':
+        return audio_scorer(fname=file, text=None, ratio=((0.95, 1.05), (0.825, 0.95)))
+    elif task == 'RL':
+        return audio_scorer(fname=file, text=None, ratio=((0.95, 1.1), (0.85, 0.95)))
+    
+main('abc.wav', text=text, task='RS')
