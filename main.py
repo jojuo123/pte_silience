@@ -169,7 +169,7 @@ def audio_scorer(fname, text, ratio=((0.85, 1.0), (0.7, 0.85)), dry_run=False):
     ideal_length, student_length = "NA", "NA"
 
     if overall_score == 3:
-        w_score, w_rate, _, _, ideal_length, student_length = syllable.speech_rate_syllable(talk_range, text, ratio=ratio)
+        w_score, w_rate, _, _, ideal_length, student_length = syllable.speech_rate_syllable(talk_range, text, ratio=ratio, wpm_avg=0.355)
 
         hesitation_score = hesitation_scorer(count_hesitation)
 
@@ -222,8 +222,8 @@ def main(file, text=None, task="RA"):
     elif task == 'RS':
         return audio_scorer(fname=file, text=text)
     elif task == 'DI':
-        return audio_scorer(fname=file, text=text, ratio=((0.95, 1.05), (0.825, 0.95)))
+        return audio_scorer(fname=file, text=text, ratio=((0.85, 1), (0.7, 0.85)))
     elif task == 'RL':
-        return audio_scorer(fname=file, text=text, ratio=((0.95, 1.1), (0.85, 0.95)))
+        return audio_scorer(fname=file, text=text, ratio=((0.85, 1), (0.7, 0.85)))
     
 main('abc.wav', text=text, task='RS')
