@@ -222,8 +222,8 @@ def main(file, text=None, task="RA"):
     elif task == 'RS':
         return audio_scorer(fname=file, text=text)
     elif task == 'DI':
-        return audio_scorer(fname=file, text=None, ratio=((0.95, 1.05), (0.825, 0.95)))
+        return audio_scorer(fname=file, text=text, ratio=((0.95, 1.05), (0.825, 0.95)))
     elif task == 'RL':
-        return audio_scorer(fname=file, text=None, ratio=((0.95, 1.1), (0.85, 0.95)))
+        return audio_scorer(fname=file, text=text, ratio=((0.95, 1.1), (0.85, 0.95)))
     
 main('abc.wav', text=text, task='RS')
