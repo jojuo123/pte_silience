@@ -169,7 +169,7 @@ def audio_scorer(fname, text, ratio=((0.85, 1.0), (0.7, 0.85)), dry_run=False):
     ideal_length, student_length = "NA", "NA"
 
     if overall_score == 3:
-        w_score, w_rate, _, _, ideal_length, student_length = syllable.speech_rate_syllable(talk_range, text, ratio=ratio, wpm_avg=0.4)
+        w_score, w_rate, _, _, ideal_length, student_length = syllable.speech_rate_syllable(talk_range, text, ratio=ratio, wpm_avg=0.355)
 
         hesitation_score = hesitation_scorer(count_hesitation)
 
