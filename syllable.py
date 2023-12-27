@@ -42,7 +42,7 @@ def speech_rate_syllable(talk_range, text=None, wpm_avg=0.4, dot_pause=0.5, spm_
     s_rate = length / s_time
     s_score = 0
     if ratio[0][0] <= s_rate <= ratio[0][1]:
-        w_score = 4
+        s_score = 4
     elif ratio[1][0] <= s_rate <= ratio[1][1]:
         s_score = 5
     else:
