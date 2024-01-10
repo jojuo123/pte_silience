@@ -31,7 +31,7 @@ def lemmatize_and_remove_stopwords(text, only_rm=False, keyword_extract=False):
                     if not token.is_stop:
                         tokens.append(token.lemma_)
             if not token.is_stop:
-                tokens_for_similarity.append(token.lemma)
+                tokens_for_similarity.append(token.lemma_)
     keywords = [k[0] for k in keywords]
     return tokens, tokens_for_similarity, sentences, nlp_tokens, keywords, spell_check
 
@@ -71,7 +71,7 @@ def swt_grammar_check(sentences):
 
 def swt(student_text, context_text):
     _, student_tokens, sentences, nlp_tokens, _, spell_check = lemmatize_and_remove_stopwords(student_text, True)
-    _, context_tokens, _, _, _ = lemmatize_and_remove_stopwords(context_text, True)
+    _, context_tokens, _, _, _, _ = lemmatize_and_remove_stopwords(context_text, True)
     content_score = content_swt(student_tokens, context_tokens)
     form_score = swt_form_check(sentences, nlp_tokens)
     grammar_score = swt_grammar_check(sentences)
@@ -79,10 +79,23 @@ def swt(student_text, context_text):
 
     return content_score + form_score + grammar_score + vocab_score
 
-def writing_scorer(task, student_text, context_text, common_dictionary, detail_dictionary):
+def writing_scorer(task, student_text, context_text, common_dictionary=None, detail_dictionary=None):
     if task == 'SWT':
-        swt(student_text, context_text)
+        return swt(student_text, context_text)
 
-print(lemmatize_and_remove_stopwords('I drove a car.', keyword_extract=True)[5])
+# print(lemmatize_and_remove_stopwords('I drove a car.', keyword_extract=True)[5])
 
 #kho check vu trong bai viet hoa lung tung (vi co named entity)
+text = '''
+Armed police have been brought into NSW schools to reduce crime rates and educate students. The 40 School Liaison Police (SLP) officers have been allocated to public and private high schools across the state.
+
+Organizers say the officers, who began work last week, will build positive relationships between police and students. But parent groups warned of potential dangers of armed police working at schools in communities where police relations were already under strain.
+
+Among their duties, the SLPs will conduct crime prevention workshops, talking to students about issues including shoplifting, offensive behavior, graffiti and drugs, and alcohol. They can also advise school principals. One SLP, Constable Ben Purvis, began to work in the inner Sydney region last week, including at Alexandria Park Community School’s senior campus. Previously stationed as a crime prevention officer at The Rocks’ he now has 27 schools under his jurisdiction in areas including The Rocks, Redfern and Kings Cross.
+
+Constable Purvis said the full-time position would see him working on the broader issues of crime prevention. “I am not a security guard”, he said. “I am not there to patrol the school. We want to improve relationships between police and schoolchildren, to have a positive interaction. We are coming to the school and giving them the knowledge to improve their own safety.” The use of fake ID among older students is among the issues he has already discussed with principals.
+
+Parents’ groups responded to the program positively, but said it may spark a range of community reactions. “It is a good thing and an innovative idea and there could be some positive benefits”, Council of Catholic School Parents executive officer Danielle Cronin said. “Different communities will respond to this kind of presence in different ways.”
+'''
+
+print(writing_scorer('SWT', 'Armed police have been brought into NSW schools to reduce crime rates and educate students.', text))
