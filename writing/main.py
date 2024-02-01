@@ -8,7 +8,7 @@ import re
 
 # Load spacy model
 nlp = spacy.load("en_core_web_sm")
-contextualSpellCheck.add_to_pipe(nlp)
+# contextualSpellCheck.add_to_pipe(nlp)
 nlp.add_pipe('keyword_extractor', last=True, config={'top_n': 20, "min_ngram": 3, "max_ngram": 3, "strict": False, "top_n_sent": 4})
 
 def lemmatize_and_remove_stopwords(text, only_rm=False, keyword_extract=False):
@@ -24,7 +24,7 @@ def lemmatize_and_remove_stopwords(text, only_rm=False, keyword_extract=False):
         t = nlp(sent)
         nlp_tokens.append(t)
         # print(sent)
-        spell_check += len(t._.suggestions_spellCheck)
+        # spell_check += len(t._.suggestions_spellCheck)
         # print(t._.suggestions_spellCheck)
         if keyword_extract:
             keywords += t._.keywords
