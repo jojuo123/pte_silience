@@ -250,6 +250,7 @@ def essay(student_text, context_text, common_dictionary):
     
     return content_score + form_score + grammar_score + spelling_score + vocab_score + dev_score
 
+def email(student_text, context_text, common_dictionary)
 
 def load_wordbank():
     with open('wordbank.pkl', 'rb') as f:
