@@ -151,13 +151,13 @@ def hesitation_scorer(count_hesitation):
         return 4
     return 3
 
-def audio_scorer(fname, text, ratio=((0.85, 1.0), (0.7, 0.85)), dry_run=False):
+def audio_scorer(fname, text, ratio=((0.85, 1.0), (0.7, 0.85)), step_duration=0.005, dry_run=False):
     if fname.endswith('.mp3'):
         sample_rate, samples = read_mp3(fname)
         # sample_rate, samples = wavfile.read(filename=fname, mmap=True)
     else:
         sample_rate, samples = wavfile.read(filename=fname, mmap=True)
-    n, _, _ = extract_silence(min_silence_length=1.0, silence_threshold=1e-4, step_duration=0.005, sample_rate=sample_rate, samples=samples)
+    n, _, _ = extract_silence(min_silence_length=1.0, silence_threshold=1e-4, step_duration=step_duration, sample_rate=sample_rate, samples=samples)
     long_pauses = n-1
     long_pauses_score = long_pause_scorer(long_pauses)
 
@@ -180,16 +180,43 @@ def audio_scorer(fname, text, ratio=((0.85, 1.0), (0.7, 0.85)), dry_run=False):
     return overall_score, long_pauses, speech_score_text, w_score, pause_range, talk_range, reason, trait, w_rate, ideal_length, student_length, count_hesitation, skeleton_trace
 
 text = 'For any marketing course that requires the development of a marketing plan, such as Marketing Management, Marketing Strategy and Segmentation Support Marketing, this is the only planning handbook that guides students through the step-by-step creation of a customized marketing plan while offering commercial software to aid in the process.'
+    
+# multiple_overall('./data', out_f='./result_overall_skeletoncheck.csv')
+# start = timeit.default_timer()
+# print(audio_scorer("./data/f7a6a796-eff7-4a45-b56c-5aa0d9a2376c.mp3", text, False))
+# stop = timeit.default_timer()
+# print(stop-start)
+    
+def main(file, text=None, task="RA", step_duration=0.005):
+    if task == 'RA':
+        return audio_scorer(fname=file, text=text, step_duration=step_duration)
+    elif task == 'RS':
+        return audio_scorer(fname=file, text=text, step_duration=step_duration)
+    elif task == 'DI':
+        return audio_scorer(fname=file, text=text, ratio=((0.85, 1), (0.7, 0.85)), step_duration=step_duration)
+    elif task == 'RL':
+        return audio_scorer(fname=file, text=text, ratio=((0.85, 1), (0.7, 0.85)), step_duration=step_duration)
+    
+# main('abc.wav', text=text, task='RS')
 
 def multiple_overall(input_dir, out_f):
     filenames = [os.path.join(input_dir, i) for i in os.listdir(input_dir) if i.endswith('.wav')]
     r = []
     for f in tqdm(filenames):
-        overall_score, long_pauses, speech_score_text, w_score, pause_range, talk_range, reason, trait, w_rate, ideal_length, student_length, count_hesitation, skeleton_trace = audio_scorer(f, text, dry_run=False)
+        start = timeit.default_timer()
+        overall_score, long_pauses, speech_score_text, w_score, pause_range, talk_range, reason, trait, w_rate, ideal_length, student_length, count_hesitation, skeleton_trace = audio_scorer(f, text, dry_run=False, step_duration=0.005)
+        stop = timeit.default_timer()
+        time_1 = stop - start
+
+        start = timeit.default_timer()
+        overall_score1, long_pauses1, speech_score_text1, w_score1, pause_range1, talk_range1, reason1, trait1, w_rate1, ideal_length1, student_length1, count_hesitation1, skeleton_trace1 = audio_scorer(f, text, dry_run=False, step_duration=0.05)
+        stop = timeit.default_timer()
+        time_2 = stop - start
+
         fname = f.split('/')[-1].split('.')[0]
         j = {
             'filename': fname,
-            'score': overall_score,
+            'overall score': overall_score,
             'long_pauses': long_pauses,
             'speech_score': speech_score_text,
             'rate score': w_score,
@@ -201,7 +228,12 @@ def multiple_overall(input_dir, out_f):
             'student length': student_length,
             'ratio': w_rate,
             'no. hesitation': count_hesitation,
-            'skeleton trace': skeleton_trace 
+            'skeleton trace': skeleton_trace, 
+            'runtime': time_1,
+            'long pauses (faster version)': long_pauses1,
+            'overall score (faster version)': overall_score1,
+            'runtime (faster version)': time_2
+            
         }
         r.append(j)
         with open (os.path.join('./output', f'{fname}.json'), 'w') as output:
@@ -209,21 +241,5 @@ def multiple_overall(input_dir, out_f):
     
     df = pd.DataFrame(r)
     df.to_csv(out_f)
-    
-# multiple_overall('./data', out_f='./result_overall_skeletoncheck.csv')
-# start = timeit.default_timer()
-# print(audio_scorer("./data/f7a6a796-eff7-4a45-b56c-5aa0d9a2376c.mp3", text, False))
-# stop = timeit.default_timer()
-# print(stop-start)
-    
-def main(file, text=None, task="RA"):
-    if task == 'RA':
-        return audio_scorer(fname=file, text=text)
-    elif task == 'RS':
-        return audio_scorer(fname=file, text=text)
-    elif task == 'DI':
-        return audio_scorer(fname=file, text=text, ratio=((0.85, 1), (0.7, 0.85)))
-    elif task == 'RL':
-        return audio_scorer(fname=file, text=text, ratio=((0.85, 1), (0.7, 0.85)))
-    
-main('abc.wav', text=text, task='RS')
+
+multiple_overall('./data/', './compare.csv')
