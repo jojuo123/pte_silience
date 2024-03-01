@@ -17,7 +17,7 @@ def lemmatize(text):
     t = [t_.lemma_ for t_ in t]
     return ' '.join(t)
 
-tasks = ['DI', 'essay', 'SST']
+tasks = ['DI', 'essay', 'SST', 'email']
 dictionary = {}
 for t in tasks:
     l_file = os.listdir('wordbank/' + t)
@@ -31,6 +31,8 @@ for t in tasks:
         content = df[col].tolist()
         if t == 'SST':
             content = [lemmatize(c) for c in content]
+        elif t == 'email':
+            content = [(lemmatize(c) if len(c.split()) == 1 else c.lower()) for c in content]
         if not dictionary.__contains__(t):
             dictionary[t] = {}
         dictionary[t][col] = content

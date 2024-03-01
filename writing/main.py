@@ -40,11 +40,20 @@ def lemmatize_and_remove_stopwords(text, only_rm=False, keyword_extract=False):
     keywords = [k[0] for k in keywords]
     return tokens, tokens_for_similarity, sentences, nlp_tokens, keywords, spell_check
 
-def compute_similarity(tokens1, tokens2):
-    tokens1 = set(tokens1)
-    tokens2 = set(tokens2)
-    set_s = tokens1.intersection(tokens2)
-    return len(set_s)
+def compute_similarity(tokens1, tokens2, unique=True):
+    if unique:
+        tokens1 = set(tokens1)
+        tokens2 = set(tokens2)
+        set_s = tokens1.intersection(tokens2)
+        return len(set_s)
+    else:
+        sum = 0
+        tokens2 = set(tokens2)
+        for t in tokens1:
+            if t in tokens2:
+                sum += 1
+        return sum
+
 
 def content_swt(student_tokens, context_tokens):
     sim = compute_similarity(student_tokens, context_tokens)
@@ -135,7 +144,7 @@ def sst(student_text, common_dictionary, detail_dictionary):
     elif spelling_score <= 1:
         spelling_score = 1
     else:
-        spelling_score = 2
+        spelling_score = 0
 
     form_score = len(tokens_2)
     if form_score < 40 or form_score > 100:
@@ -230,13 +239,14 @@ def essay(student_text, context_text, common_dictionary):
     elif spelling_score <= 1:
         spelling_score = 1
     else:
-        spelling_score = 2
+        spelling_score = 0
 
     tokens = ' '.join([t.lemma_ for sent in nlp_tokens for t in sent])
     sentence_tokens = [[t.lemma_ for t in sent if not t.is_punct] for sent in nlp_tokens]
     vocab_score = essay_vocab(tokens, sentence_tokens, common_dictionary)
 
     dev_score = 0
+    student_text = student_text.lower()
     text = student_text.strip()
     p = re.split(r'\n+', text)
     if len(p) == 4:
@@ -250,7 +260,85 @@ def essay(student_text, context_text, common_dictionary):
     
     return content_score + form_score + grammar_score + spelling_score + vocab_score + dev_score
 
-def email(student_text, context_text, common_dictionary)
+def email(student_text, context_text, common_dictionary):
+    _, student_tokens, sentences, nlp_tokens, _, spell_check = lemmatize_and_remove_stopwords(student_text, True)
+    _, context_tokens, _, _, _, _ = lemmatize_and_remove_stopwords(context_text, True)
+    content_score = compute_similarity(student_tokens, context_tokens, unique=False)
+    if content_score < 1:
+        content_score = 0
+    elif content_score <= 1:
+        content_score = 1
+    elif content_score <= 2:
+        content_score = 2
+    else:
+        content_score = 3
+
+    #form score
+    tokens_2 = [t.text for sent in nlp_tokens for t in sent if not t.is_punct]
+    form_score = len(tokens_2)
+    if form_score < 30 or form_score > 120:
+        form_score = 0
+    elif 39 <= form_score <= 49 or 121 <= form_score <= 140:
+        form_score = 1
+    else:
+        form_score = 2
+    if student_text.isupper():
+        form_score = 0
+    
+    grammar_score = 2
+
+    spelling_score = spell_check
+    if spelling_score <= 2:
+        spelling_score = 2
+    elif spelling_score <= 4:
+        spelling_score = 1
+    else:
+        spelling_score = 0
+    
+    tokens = ' '.join([t.lemma_ for sent in nlp_tokens for t in sent])
+    vocab_score = 0
+    vocab_bank = common_dictionary['Word bank']
+    for w in vocab_bank:
+        if w in tokens:
+            vocab_score += 1
+    if vocab_score < 20:
+        vocab_score = 0
+    elif vocab_score < 40:
+        vocab_score = 1
+    else:
+        vocab_score = 2
+
+    email_convention_score = 0
+    organization_score = 0
+
+    student_text = student_text.lower()
+    text = student_text.strip()
+    p = re.split(r'\n+', text)
+    if len(p) == 8:
+        organization_score = 1
+
+    cnt = 0
+    for w in common_dictionary['Signalling words']:
+        if w in student_text:
+            cnt += 1
+    if cnt >= 3:
+        organization_score += 1
+    
+    f_p = p[0]
+    for w in common_dictionary['Email Greetings']:
+        if w in f_p:
+            email_convention_score += 1
+            break 
+
+    l2_p = p[-2]
+    for w in common_dictionary['Email Sign-offs']:
+        if w in l2_p:
+            email_convention_score += 1
+            break
+    
+    # print(content_score, form_score, grammar_score, spelling_score, vocab_score, email_convention_score, organization_score)
+    return content_score + form_score + grammar_score + spelling_score + vocab_score + email_convention_score + organization_score
+
 
 def load_wordbank():
     with open('wordbank.pkl', 'rb') as f:
@@ -280,6 +368,10 @@ def writing_scorer(task, student_text, context_text=None, common_dictionary=None
         #detail_dictionary = list
         sst_dict = common_dictionary['SST']
         return sst(student_text, sst_dict, detail_dictionary)
+    elif task == 'email':
+        email_dict = common_dictionary['email']
+        return email(student_text, context_text, email_dict)
+        
 
 # print(lemmatize_and_remove_stopwords('I drove a car.', keyword_extract=True)[5])
 
@@ -306,18 +398,34 @@ Among their duties, the SLPs will conduct crime prevention workshops, talking to
 Constable Purvis said the full-time position would see him working on the broader issues of crime prevention. “I am not a security guard”, he said. “I am not there to patrol the school. We want to improve relationships between police and schoolchildren, to have a positive interaction. We are coming to the school and giving them the knowledge to improve their own safety.” The use of fake ID among older students is among the issues he has already discussed with principals.
 '''
 
+text_3 = '''
+Greetings,
+
+1
+2
+3
+4
+5
+Sincerely,
+DDDD
+
+'''
+
 # print(writing_scorer('SWT', 'Armed police have been brought into NSW schools to reduce crime rates and educate students.', text))
 # tmp = lemmatize_and_remove_stopwords(text, keyword_extract=True)[-2]
 # print(tmp)
 
 wordbank = load_wordbank()
+# print(wordbank)
 #SST
-detail_dict = load_detail_dictionary('./wordbank/example/sst_detail_dict.csv', 1)
-print(writing_scorer("SST", student_text="Australia houses is indicated as expensive. The price has increased significantly, and essentially, the rate has changed the living of the population.", common_dictionary=wordbank, detail_dictionary=detail_dict))
+# detail_dict = load_detail_dictionary('./wordbank/example/sst_detail_dict.csv', 1)
+# print(writing_scorer("SST", student_text="Australia houses is indicated as expensive. The price has increased significantly, and essentially, the rate has changed the living of the population.", common_dictionary=wordbank, detail_dictionary=detail_dict))
 
-#DI
-detail_dict = load_detail_dictionary('./wordbank/DI/Images_Elements.csv', 1)
-print(writing_scorer("DI", student_text="western australia and northern people always enter territory education.", common_dictionary=wordbank, detail_dictionary=detail_dict))
+# #DI
+# detail_dict = load_detail_dictionary('./wordbank/DI/Images_Elements.csv', 1)
+# print(writing_scorer("DI", student_text="western australia and northern people always enter territory education.", common_dictionary=wordbank, detail_dictionary=detail_dict))
 
-#essay
-print(writing_scorer("essay", text_2, 'Armed police have been brought into NSW schools to reduce crime rates and educate students.', common_dictionary=wordbank))
+# #essay
+# print(writing_scorer("essay", text_2, 'Armed police have been brought into NSW schools to reduce crime rates and educate students.', common_dictionary=wordbank))
+
+print(writing_scorer('email', student_text=text_3, context_text='abs 1 2 3', common_dictionary=wordbank))
