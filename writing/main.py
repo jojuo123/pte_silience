@@ -311,9 +311,9 @@ def email(student_text, context_text, common_dictionary):
     #form score
     tokens_2 = [t.text for sent in nlp_tokens for t in sent if not t.is_punct]
     form_score = len(tokens_2)
-    if form_score < 30 or form_score > 120:
+    if form_score < 30 or form_score > 140:
         form_score = 0
-    elif 39 <= form_score <= 49 or 121 <= form_score <= 140:
+    elif 30 <= form_score <= 49 or 121 <= form_score <= 140:
         form_score = 1
     else:
         form_score = 2
