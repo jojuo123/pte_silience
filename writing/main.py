@@ -156,7 +156,7 @@ def sst(student_text, common_dictionary, detail_dictionary):
     
     return content_score + vocab_score + form_score + grammar_score + spelling_score
 
-def essay_vocab(tokens, sentence_tokens, common_dictionary):
+def essay_vocab(tokens, sentence_tokens, common_dictionary, student_text):
     base_score = 0.0
     cnt = 0
     for s in sentence_tokens:
@@ -186,13 +186,19 @@ def essay_vocab(tokens, sentence_tokens, common_dictionary):
     else:
         linguistic_range_score = int(linguistic_range_score)
     
+    tokens = tokens.split()
+    # print(tokens)
     vocab_score = 0.0
     for key in common_dictionary.keys():
         if key.endswith('Words'):
             cnt = 0
             for p in common_dictionary[key]:
-                if p in tokens:
+                if len(p.split()) > 1:
+                    if p in student_text:
+                        cnt += 1
+                elif p in tokens:
                     cnt += 1
+            # print(key, cnt)
             if key.startswith('B1') and cnt > 20:
                 vocab_score += 0.5
             if key.startswith('B2') and cnt > 15:
@@ -241,9 +247,10 @@ def essay(student_text, context_text, common_dictionary):
     else:
         spelling_score = 0
 
+    student_text = student_text.lower()
     tokens = ' '.join([t.lemma_ for sent in nlp_tokens for t in sent])
     sentence_tokens = [[t.lemma_ for t in sent if not t.is_punct] for sent in nlp_tokens]
-    vocab_score = essay_vocab(tokens, sentence_tokens, common_dictionary)
+    vocab_score = essay_vocab(tokens, sentence_tokens, common_dictionary, student_text=student_text)
 
     dev_score = 0
     student_text = student_text.lower()
@@ -260,10 +267,38 @@ def essay(student_text, context_text, common_dictionary):
     
     return content_score + form_score + grammar_score + spelling_score + vocab_score + dev_score
 
+def prompt_similarity(student_text, context_text, n_prompt=3):
+    i = 0
+    list_prompt = []
+    while i < len(context_text):
+        if context_text[i] == '-':
+            j = i + 1
+            list_prompt.append('')
+            while j < len(context_text) and context_text[j] != '\n':
+                list_prompt[-1] += context_text[j]
+                j += 1
+            i = j
+        i += 1
+    list_prompt = list_prompt[:n_prompt]
+    list_prompt = [lemmatize_and_remove_stopwords(i, True)[1] for i in list_prompt]
+
+    content_score = 0
+    for prompt in list_prompt:
+        flag = True
+        for t in prompt:
+            if t not in student_text:
+                flag = True
+                break
+        if flag:
+            content_score += 1
+    
+    return content_score
+
+
 def email(student_text, context_text, common_dictionary):
     _, student_tokens, sentences, nlp_tokens, _, spell_check = lemmatize_and_remove_stopwords(student_text, True)
-    _, context_tokens, _, _, _, _ = lemmatize_and_remove_stopwords(context_text, True)
-    content_score = compute_similarity(student_tokens, context_tokens, unique=False)
+    # _, context_tokens, _, _, _, _ = lemmatize_and_remove_stopwords(context_text, True)
+    content_score = prompt_similarity(student_tokens, context_text, n_prompt=3)
     if content_score < 1:
         content_score = 0
     elif content_score <= 1:
@@ -411,6 +446,43 @@ DDDD
 
 '''
 
+text_4 = '''
+although
+ability
+above
+abroad
+absent
+absolutely
+accent
+accept
+acceptable
+access
+accommodation
+accompany
+according to
+account
+accountant
+accurate
+accurately
+ache
+achieve
+achievement
+abandon
+abandoned
+abolish
+about
+absence
+absolute
+absorb
+abstract
+absurd
+abuse
+academic
+accessible
+accidental
+accidentally
+'''
+
 # print(writing_scorer('SWT', 'Armed police have been brought into NSW schools to reduce crime rates and educate students.', text))
 # tmp = lemmatize_and_remove_stopwords(text, keyword_extract=True)[-2]
 # print(tmp)
@@ -426,6 +498,6 @@ wordbank = load_wordbank()
 # print(writing_scorer("DI", student_text="western australia and northern people always enter territory education.", common_dictionary=wordbank, detail_dictionary=detail_dict))
 
 # #essay
-# print(writing_scorer("essay", text_2, 'Armed police have been brought into NSW schools to reduce crime rates and educate students.', common_dictionary=wordbank))
+print(writing_scorer("essay", text_4, 'Armed police have been brought into NSW schools to reduce crime rates and educate students.', common_dictionary=wordbank))
 
-print(writing_scorer('email', student_text=text_3, context_text='abs 1 2 3', common_dictionary=wordbank))
+# print(writing_scorer('email', student_text=text_3, context_text='abs 1 2 3', common_dictionary=wordbank))
